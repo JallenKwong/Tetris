@@ -1,0 +1,317 @@
+﻿<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<title>2048</title>
+		<style type="text/css">
+			.basic{
+				height:80px;
+				width:80px;
+				background-color:#DBDBDB;
+				float:left;
+				margin:2px;
+			}
+			.row{
+				height:80px;
+				clear:both;
+			}
+		</style>
+	</head>
+	
+	<body>
+		<div id="pool"></div>
+		<div id="sample" class="basic" style='opacity: 0;'></div>
+		<div>score:<span id='score' style="font-size:200%;font-weight:bold;"></span></div>
+		
+		<script type="text/javascript" >
+			//对象内使用，要加this
+			var container={
+				rowNum:4,
+				colNum:4,
+				score:0,//靠弄个Cookie记录下游戏记录
+				isMoved:false,//Block 有没有移动过
+				content:[],//{x:col,y:row,v:value}
+				colour:['#DBDBDB','#56A36C','#EFCEE8',
+						'#81C2D6','#8192D6','#D9B3E6',
+						'#DCF7A1','#83FCD8','#E8F2FF',
+						'#91C6FF','#B8F788','#58D2E8',
+						'#F2B6B6','#E8ED51','#FFE3FB',
+						'#E8FF8C','#FFDEC9','#F5A433',
+						'#E6109B','#96C4E6','#E560CD'],
+				colourObject:{},
+				//初始化 背景
+				loadBackground:function(){
+					var pool = document.getElementById("pool");
+					var sample = document.getElementById("sample")
+					var margin = 2;
+					var dotWidth = parseFloat(sample.offsetWidth) + margin;//基本方块宽度 + margin
+					for(var i = 0; i != this.rowNum; i++){
+		
+						//创建行
+						var rDiv = document.createElement("div");
+						rDiv.setAttribute('id','r' + i);
+						rDiv.setAttribute('class','row');
+						
+						for(var j = 0; j != this.colNum; j++){
+							var cDiv = document.createElement("div");
+							cDiv.setAttribute('id','c'+j + '_r' + i);
+							cDiv.setAttribute('class','basic');
+							rDiv.appendChild(cDiv);
+						}
+						rDiv.setAttribute('width',(this.colNum * (dotWidth + margin)) + 'px')
+						pool.appendChild(rDiv);
+					}
+				},
+				findBlock:function(colx, rowy){
+					return this.content.find(function(value){
+						return value.x == colx && value.y == rowy;
+					});
+				},
+				addBlockToMine:function(){//开局或移动后,添加新块
+					var zeroBlockArray = this.content.filter(function(value){
+						return value.v == 0;
+					});
+					
+					if(zeroBlockArray.length != 0){
+						zeroBlockArray[this.makeRandomInteger(zeroBlockArray.length)].v = 
+							(this.makeRandomInteger(2) + 1) * 2;
+					}
+				},
+				makeRandomInteger:function(scope){
+					return Math.floor(Math.random() * scope);
+				},
+				checkDeath:function(){
+					if(this.content.filter(function(value){
+							return value.v == 0;
+						}).length != 0){
+						return false;//有零块就表示没有死
+					}else{
+						//满格时，检测相邻之间可合并的可能性
+						//再没有合并的可能，没有的话，游戏就结束
+						
+						//穷举法(不聪明的方法)
+						for(var i = 0; i < this.rowNum; i++){
+							if(i != this.rowNum - 1){
+								for(var j = 0;j < this.colNum; j++){
+									var mainBlock = this.findBlock(j, i);
+									var downBlock = this.findBlock(j, i + 1);
+
+									if(j != this.colNum - 1){
+										var rightBlock = this.findBlock(j + 1,i);
+									
+										if(mainBlock.v == rightBlock.v 
+											|| mainBlock.v == downBlock.v){
+											return false;
+										}
+									}else{
+										if(mainBlock.v == downBlock.v){
+											return false;
+										}
+									}
+								
+								}
+							}else{
+								for(var j = 0;j < this.colNum - 1; j++){
+									var mainBlock = this.findBlock(j, i);
+									var rightBlock = this.findBlock(j + 1, i);
+									
+									if(mainBlock.v == rightBlock.v){
+										return false;
+									}
+								}
+							}							
+						}
+						return true;//真的Game Over
+					}
+				},
+				refresh:function(){//刷新显示页面
+					for(var row = 0;row < this.rowNum;row++){
+						for(var col = 0;col < this.colNum;col++){
+							var value = this.findBlock(col,row).v;
+							var elem = document.getElementById('c'+col+'_r'+row);
+							elem.style.backgroundColor = this.colourObject[value] == undefined?this.colourObject[0]:this.colourObject[value];
+							elem.innerHTML 
+								= (value == 0 ? "" : "<span style='font-size:200%;font-weight:bold;'>"+value+"</span>");
+						}
+					}
+					
+					document.getElementById('score').innerHTML = this.score;
+				},
+				addKeyListener:function(event){
+					var keycode = event.keyCode;
+					if(keycode >= 37 && keycode <= 40){
+						//alert(keycode);
+						event.preventDefault();
+						var changeCount = 0;//记住块有没真正得移动过
+						switch(keycode){
+						
+							case 37://左
+								//console.log(keycode);
+								for(var i = 0; i < this.rowNum; i++){
+									var queue = [];
+									var flag = false;
+									
+									//入栈
+									for(var j = 0 ; j < this.colNum; j++){
+										var block = this.findBlock(j, i);
+										
+										if(block.v == 0){
+											continue;
+										}
+									
+										flag = this.coreCalculate(block, queue, flag);
+									}
+									
+									//出队列
+									for(var k = 0 ;k < this.colNum; k++){
+										changeCount += this.outOfQueue(k, i, queue, k);
+									}
+									
+								}
+								break;
+							case 38://上
+								for(var i = 0; i < this.colNum; i++){
+									var queue = [];
+									var flag = false;
+									
+									for(var j = 0 ;j < this.rowNum; j++){
+										var block = this.findBlock(i, j);
+										
+										if(block.v == 0){
+											continue;
+										}
+									
+										flag = this.coreCalculate(block, queue, flag);
+									}
+									
+									//出队列
+									for(var k = 0 ;k < this.rowNum; k++){
+										changeCount += this.outOfQueue(i, k, queue, k);
+									}
+								}
+								break;
+							case 39://右
+								for(var i = 0; i < this.rowNum; i++){
+									var queue = [];
+									var flag = false;
+									//入栈
+									for(var j = this.colNum - 1 ; j >= 0; j--){
+										var block = this.findBlock(j, i);
+										
+										if(block.v == 0){
+											continue;
+										}
+									
+										flag = this.coreCalculate(block, queue, flag);
+									}
+									//console.log(queue);
+									//出队列
+									for(var k = this.colNum - 1 ,l = 0;k >= 0; k--,l++){
+										changeCount += this.outOfQueue(k, i, queue, l);
+									}
+								}
+							
+								break;
+							case 40://下
+								for(var i = 0; i < this.colNum; i++){
+									var queue = [];
+									var flag = false;
+									for(var j = this.rowNum - 1 ;j >= 0; j--){
+										var block = this.findBlock(i, j);
+										
+										if(block.v == 0){
+											continue;
+										}
+									
+										flag = this.coreCalculate(block, queue, flag);
+									}
+									
+									//出队列
+									for(var k = this.rowNum - 1 ,l = 0;k >= 0; k--,l++){
+										changeCount += this.outOfQueue(i, k, queue, l);
+									}
+								}
+								break;
+							default:break;
+						}
+						
+						//要检查content的v们有没有改变过
+						//1.入栈操作前，要来个数组拷贝，然后在做比对，这做法并不聪明
+						//2.出队列的时候，跟原来的值进行比较，有改变 changCount++
+						
+						//console.log('changeCount:' + changeCount);
+						if(changeCount != 0){
+							this.addBlockToMine();
+							
+							this.refresh();//刷新显示页面
+							
+							if(this.checkDeath()){
+								alert("Game Over!");
+								document.onkeydown = function(event){
+									var keycode = event.keyCode;
+									if(keycode >= 37 && keycode <= 40){
+										event.preventDefault();
+										alert("Game Over!");
+									}
+								};
+							}
+					
+						}
+					}
+				},
+				init:function(){
+					for(var row = 0; row < this.rowNum; row++){
+						for(var col = 0; col < this.colNum; col++){
+							this.content[this.content.length] = {x:col,y:row,v:0};
+						}
+					}
+					
+					for(var i = 0;i <= 20;i++){
+						if(i == 0){
+							this.colourObject[i] = this.colour[i];
+							continue;
+						}
+						this.colourObject[Math.pow(2,i)] = this.colour[i];
+					}
+					//console.log(this.colourObject[7]);
+					
+				},
+				coreCalculate:function(block, queue, flag){//// flag的作用，入栈方式有问题，譬如2,2,4  应得 4,4 但结果 得8
+					if(queue.length == 0 ){
+						queue[queue.length] = block.v;
+						return flag;
+					}else{
+						var tailOfQueue = queue[queue.length - 1];
+						if((tailOfQueue == block.v) && !flag){
+							this.score += (queue[queue.length - 1] = tailOfQueue * 2);
+							return true;
+						}else{
+							queue[queue.length] = block.v;
+							return false;
+						}
+					}
+				},
+				outOfQueue:function(colx, rowy, queue, index){
+					var block = this.findBlock(colx, rowy);
+					var oldValue = block.v;
+					block.v = queue[index] == undefined ? 0 : queue[index];
+					return oldValue != block.v? 1 : 0;
+				}
+			};
+		
+			//main
+			window.onload = function(){
+				container.loadBackground();
+				container.init();
+				//alert(container.findBlock(1,1).v);
+				container.addBlockToMine();
+				container.addBlockToMine();
+				container.refresh();
+				document.addEventListener('keydown', function(event){
+					container.addKeyListener(event);
+				});
+			};
+		
+		</script>
+	</body>
+</html> 
