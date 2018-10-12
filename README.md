@@ -1,17 +1,11 @@
+# 2048 #
+
+![](2048/2048.png)
+
 # Tetris #
 
-This is a Tetris game coded in JavaScript.
+![](Tetris/Tetris.png)
 
-Open **Tetris.html** with a browser and start the game.
+# BlackScreen&GreenWord #
 
-Use **↑  ↓  ←  →  and D** key to control the game.
-
-And **D** key is used for letting the blocks fall down directly.
-
-Enjoy yourself!
-
-**PS.**
-
-This project is my first self-design project in github, although it's just a little.
-
-I hope the game would encourage me when I'm down in coding work.
+![](BlackScreen&GreenWord/blackscreen.jpg)
