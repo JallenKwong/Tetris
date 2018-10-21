@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<!--1.Hello World-->
+<!--画个红色矩形-->
+<canvas id="myCanvas" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+
+<script>
+var canvas = document.getElementById("myCanvas");
+var ctx = canvas.getContext("2d");
+ctx.fillStyle = "#FF0000";
+ctx.fillRect(0,0,150,75);
+</script>
+
+<!------------------------------------------------------------------------------->
+
+<!--2.坐标的介绍-->
+<!--画个条线-->
+<canvas id="myCanvas2" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+
+<script>
+var canvas = document.getElementById("myCanvas2");
+var ctx = canvas.getContext("2d");
+ctx.moveTo(0,0);
+ctx.lineTo(200,100);
+ctx.stroke();
+</script>
+
+
+<!--画个圈-->
+<canvas id="myCanvas3" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+
+<script>
+var canvas = document.getElementById("myCanvas3");
+var ctx = canvas.getContext("2d");
+ctx.beginPath();
+ctx.arc(95,50,40,0,2*Math.PI);
+ctx.stroke();
+</script>
+
+<!------------------------------------------------------------------------------->
+
+<!--3.Gradient渐变-->
+
+<!--Using createLinearGradient()-->
+<canvas id="myCanvas4" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+<script>
+var c=document.getElementById("myCanvas4");
+var ctx=c.getContext("2d");
+
+// Create gradient
+var grd=ctx.createLinearGradient(0,0,200,0);
+grd.addColorStop(0,"red");
+grd.addColorStop(1,"white");
+
+// Fill with gradient
+ctx.fillStyle=grd;
+ctx.fillRect(10,10,150,80);
+</script>
+
+<!--Using createRadialGradient()放射渐变-->
+<canvas id="myCanvas5" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+<script>
+var c=document.getElementById("myCanvas5");
+var ctx=c.getContext("2d");
+
+// Create gradient
+var grd=ctx.createRadialGradient(75,50,5,90,60,100);
+grd.addColorStop(0,"red");
+grd.addColorStop(1,"white");
+
+// Fill with gradient
+ctx.fillStyle = grd;
+ctx.fillRect(10,10,150,80);
+</script>
+
+
+<!--4.文本-->
+<!--Using fillText()-->
+<canvas id="myCanvas6" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+<script>
+var canvas = document.getElementById("myCanvas6");
+var ctx = canvas.getContext("2d");
+ctx.font = "30px Arial";
+ctx.fillText("Hello World",10,50);
+</script>
+
+<!--Using strokeText()-->
+<canvas id="myCanvas7" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+<script>
+var canvas = document.getElementById("myCanvas7");
+var ctx = canvas.getContext("2d");
+ctx.font = "30px Arial";
+ctx.strokeText("Hello World",10,50);
+</script>
+
+<!--Add Color and Center Text-->
+<canvas id="myCanvas8" width="200" height="100" style="border:1px solid #000000;">
+</canvas>
+<script>
+var canvas = document.getElementById("myCanvas8");
+var ctx = canvas.getContext("2d");
+ctx.font = "30px Comic Sans MS";
+ctx.fillStyle = "red";
+ctx.textAlign = "center";
+ctx.fillText("Hello World", canvas.width/2, canvas.height/2); 
+</script>
+
+<!--5.画图-->
+<!---->
+<img id="scream" width="220" height="277" src="pic_the_scream.jpg" alt="The Scream">
+<canvas id="myCanvas9" width="240" height="297" style="border:1px solid #d3d3d3;">
+Your browser does not support the HTML5 canvas tag.
+</canvas>
+<script>
+window.onload = function() {
+    var canvas = document.getElementById("myCanvas9");
+    var ctx = canvas.getContext("2d");
+    var img = document.getElementById("scream");
+	ctx.drawImage(img, 10, 10);
+};
+</script>
+
+</body>
+</html>
