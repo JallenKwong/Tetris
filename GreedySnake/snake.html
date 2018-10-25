@@ -1,0 +1,173 @@
+﻿<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>snake</title>
+	<script src="jquery-1.7.1-min.js"></script>
+	<style>
+		.basic{
+			height:15px;
+			width:15px;
+			background-color:black;
+			float:left;
+			margin:0.5px;
+		}
+		.row{
+			height:10px;
+			width:55px;
+		}
+	</style>
+	<script>
+		var snake={
+			direction:39,//37left,38up,39right,40down
+			body:[{x:12 ,y:6 },{x:11 ,y:6 },{x:10 ,y:6 },{x:9 ,y:6 },{x:8 ,y:6 }],//蛇的身体 (坐标数组)
+			init:function(){
+				this.body = [{x:12 ,y:6 },{x:11 ,y:6 },{x:10 ,y:6 },{x:9 ,y:6 },{x:8 ,y:6 }];
+				this.direction = 39;
+			},
+			paintBody:function(){
+				this.body.forEach(function(item,index){
+					context.becomeWhite(item.x,item.y);
+				});
+			},
+			move:function(){
+				console.log(this.body[0]);
+				var headPosition = snake.body[0];//蛇头
+				var x0 = headPosition.x,y0 = headPosition.y;
+				switch(snake.direction){
+					case 37:x0 = headPosition.x - 1;
+							if(x0 < 0){
+								x0 = context.colNum - 1;
+							}
+							break;
+					case 38:y0 = headPosition.y - 1;
+							if(y0 < 0){
+								y0 = context.rowNum - 1;
+							}
+							break;
+					case 39:x0 = headPosition.x + 1;
+							if(x0 > context.colNum - 1){
+								x0 = 0;
+							}
+							break;
+					case 40:y0 = headPosition.y + 1;
+							if(y0 > context.rowNum - 1){
+								y0 = 0;
+							}
+							break;
+					default:break;
+				}
+				
+				var nextHeadPosition = {x:x0,y:y0};
+				//准备前一格的坐标
+				
+				//如果是红点的话
+				if(nextHeadPosition.x == mouse.x && nextHeadPosition.y == mouse.y){
+					//红点变为蛇头
+					context.becomeWhite(x0,y0);
+					this.body.unshift(nextHeadPosition);
+					mouse.show();
+					return;
+				}
+				
+				//如果碰撞自身自杀
+				if(snake.body.some(function(item,index){
+					return item.x == nextHeadPosition.x && item.y == nextHeadPosition.y ;
+				})){
+					 clearInterval(snake.move);
+					 alert('Game Over!')
+					 return;
+				}		
+				
+				//前进一格
+				context.becomeWhite(x0,y0);
+				snake.body.unshift(nextHeadPosition);
+				
+				var vanishPosition = snake.body.pop();
+				context.recoverBlack(vanishPosition.x, vanishPosition.y);
+			},
+			moveAccordingDirection:function(event){
+				//console.log("已经点击按键!");
+				var direction = this.direction;
+				
+				var keycode = event.keyCode;
+				if(keycode>=37 && keycode<=40){
+					event.preventDefault();
+				}
+				
+				if(direction == keycode || direction == keycode + 2 || direction == keycode - 2){
+					return;
+				}
+				
+				this.direction = keycode;
+			}
+		};
+		
+		var mouse = {
+			x:-1,
+			y:-1,
+			show:function(){
+				do{
+					this.x = Math.floor(Math.random() * context.colNum);
+					this.y = Math.floor(Math.random() * context.rowNum);
+				}
+				while(snake.body.some(function(item,index){
+					return item.x == this.x && item.y == this.y ;
+				}))
+				document.getElementById('c'+this.x+'_r'+this.y).style.backgroundColor = 'red';
+				//$('#c'+mouse.x+'_r'+mouse.y).css('background-color','red');
+			}
+		};
+		
+		var context = {
+			rowNum:50,//行数
+			colNum:50,//列数
+			
+			//换成JS原生方法
+			loadBackground:function(){
+				var margin = 0.5;
+				var dotWidth = parseFloat($('.basic').css('width')) + margin;//基本方块宽度 + margin
+				
+				for(var i = 0; i != this.rowNum; i++){
+
+					$('#pool').append("<div id=\'r"+i +"\' class='row'></div>");
+					
+					for(var j = 0; j != this.colNum; j++){
+						$('#r'+i).append("<div class='basic' id=\'c"+j+"_r" + i +"\'></div>");
+					}
+					
+					if(parseFloat($('#r'+i).css('width')) <= this.rowNum * dotWidth + margin){
+						$('#r'+i).css('width',(this.rowNum * (dotWidth + margin))+'px');
+					}
+				}
+				$('#pool').append("<div style='clear:both;'></div>")
+			},
+			recoverBlack:function(x,y){
+				document.getElementById('c'+x+'_r'+y).style.backgroundColor = 'black';
+			},
+			becomeWhite:function(x,y){
+				document.getElementById('c'+x+'_r'+y).style.backgroundColor = 'white';
+			}
+		};
+		
+		window.onload = function(){
+			context.loadBackground();
+			snake.paintBody();
+			setInterval(function(){snake.move();}, 100); 
+			//document.onkeydown = snake.moveAccordingDirection;
+			document.addEventListener('keydown',function(event){
+				snake.moveAccordingDirection(event);
+			});
+			mouse.show();
+		};
+	</script>
+  </head>
+  <body>
+	<div id='pool' style="background-color:#4F9CEE;"><div>
+	<div id='sample' class="basic" style="display:none;"></div>
+	<!-- 
+		下一个目标： 
+		水缸有水蛇 立体版的贪食蛇
+	-->
+  </body>
+</html>
