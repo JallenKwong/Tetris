@@ -1,0 +1,51 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<title>Poker2Image</title>
+		<style type="text/css">
+
+		</style>
+		<script src='logger.js'></script>
+		<script src='poker.js'></script>
+	</head>
+	
+	<body>
+		
+		<script type="text/javascript">
+			log.currentRank = 'DEBUG';
+			//log.currentRank = 'NONE';
+			
+			poker.log = log;
+			poker.init();
+			
+		</script>
+
+		<script type="text/javascript">
+			
+			window.onload = function(){
+				var body = document.getElementsByTagName('body')[0];
+				var div = document.createElement("div");
+			
+				for(var cardName in poker.cards){
+					
+					var sdiv = document.createElement("div")
+					sdiv.setAttribute("style","width:410px;height:309px;float:left;")
+					
+					poker.drawCardCanvas(sdiv, cardName, 200);
+					
+					var img = document.createElement("img");
+					img.setAttribute("src","poker/"+cardName+".jpg");
+					img.setAttribute("width","200");
+					sdiv.appendChild(img);
+					
+					div.appendChild(sdiv);
+				}
+				
+				body.appendChild(div);
+			};
+			
+			
+		</script>
+	</body>
+</html> 

@@ -1,0 +1,501 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
+		<title>PokerMemoryTest</title>
+		<style type="text/css">
+			.item{
+				margin:3px auto;
+				/*
+				border:1px solid #333333;
+				width:250px;
+				height:120px;
+				float:left;
+				*/
+			}
+			
+			#start, #end, #restart, #history{
+			    width: 100px;
+				height: 50px;
+				/*float: left;*/
+				margin: 3px;
+				font-size:22px;
+			}
+			
+			select{
+				margin: 3px;
+				width: 120px;
+				font-size: 34px;
+			}
+			
+			canvas{
+				margin: 3px;
+			}
+			
+			#result{
+				margin:3px auto;
+				border: 1px solid #ccc;
+				/*float: left;*/
+				border-collapse: collapse;
+			}
+			
+			#result tr:nth-child(even) {
+				background-color: #f1f1f1;
+			}
+			
+			#result td{
+				border-right: 1px solid #ccc;
+			}
+			
+			td[id^='result']{
+				font-size:34px;
+			}
+			
+		</style>
+		<script src='logger.js'></script>
+		<script src='poker.js'></script>
+	</head>
+	
+	<!--body style写在style不起作用-->
+	<body style='text-align:center;'>
+		
+		<script type="text/javascript">
+			log.currentRank = 'DEBUG';
+			//log.currentRank = 'NONE';
+			
+			//poker.log = log;
+			poker.init();
+		</script>
+
+		<script type="text/javascript">
+			
+			var pokerMemoryTest = {
+				alive:false,
+				items:[],//{cardName:, answer:,result:}
+				level:0,
+				level2TheNumOfItems:[13, 26, 39, 54],
+				options:[],//下拉菜单选项
+				cardGroups:[],
+				cardGroups2:{},
+				log:null,
+				body:null,
+				poker:null,
+				times:[],//init, 开始, 结束的时间戳毫秒值
+				init:function(){
+					this.times.push(Date.now())
+					
+					this.body = document.getElementsByTagName('body')[0];
+					
+					this.cardGroups = this.poker.groups;//spade-ace...
+					this.cardGroups2 = this.poker.groups2;//spade-ace To [♠1, Black, Priority]
+					
+					this.readLocalLevel();
+					
+					var theNumOfItems = this.level2TheNumOfItems[this.level];
+					
+					//初始化items, 题目
+					for(var i = 0; i < theNumOfItems; i++){
+						var index = this.makeRandomInteger(this.cardGroups.length);
+						var name = this.cardGroups[index]
+						
+						while(this.checkIfCardNamedExistedInItems(name) || name == 'back'){
+							index = this.makeRandomInteger(this.cardGroups.length);
+							name = this.cardGroups[index];
+						}
+						
+						this.items.push({cardName:name, answer:"",result:""});
+					}
+					//初始化options
+					for(var cardName in this.cardGroups2){
+						var stuff = this.cardGroups2[cardName];
+						this.options.push({name1:cardName, name2:stuff[0], color:stuff[1], priority:stuff[2]});
+					}
+					
+					this.options.sort(function(a, b){return a.priority - b.priority});
+					
+					if(this.log != null){
+						//this.log.info(this.items);
+						//this.log.info(this.options);
+					}
+					
+					this.displayPage();
+				},
+				checkIfCardNamedExistedInItems:function(cardName){
+					for(var j = 0; j < this.items.length; j++){
+						if(this.items[j].cardName == cardName)
+							return true;
+					}
+					return false;
+				},
+				readLocalLevel:function(){
+					var testLevel = localStorage.getItem('testLevel')
+					this.level = (testLevel == null? 0 : testLevel);
+				},
+				updateLocalLevel:function(){
+					localStorage.setItem('testLevel', this.value)
+					//log.info(typeof(localStorage.getItem('testLevel')))//string					
+					location.reload()
+				},
+				displayPage:function(){
+					var div = document.createElement("div");
+
+					//渲染radio
+					var rdiv = document.createElement("div")
+					rdiv.id = 'radios'
+					
+					for(var i = 0; i < this.level2TheNumOfItems.length; i++){
+						var radio = document.createElement("input")
+						radio.setAttribute("type", "radio")
+						radio.setAttribute("name", "testLevel")
+						radio.setAttribute("value", i)
+						
+						if(this.level == i){
+							radio.setAttribute("checked", "checked")
+						}else{
+							radio.addEventListener('click', this.updateLocalLevel)
+						}
+						rdiv.appendChild(radio)
+						
+						var span = document.createElement("span")
+						span.setAttribute("style", "margin:0 10px 0 0;")
+						span.innerHTML = this.level2TheNumOfItems[i]
+						
+						rdiv.appendChild(span)
+						//rdiv.appendChild(document.createElement("br"))
+					}
+					
+					div.appendChild(rdiv)
+
+					//渲染items
+					for(var i = 0;i < this.items.length; i++){
+						var cardName = this.items[i].cardName;
+					
+						var sdiv = document.createElement("div");
+						sdiv.setAttribute('class','item')
+						
+						var index = document.createElement("span");
+						index.innerHTML = (i + 1) + '.';
+						sdiv.appendChild(index);
+						
+						poker.drawAPartOfCardCanvas(sdiv, cardName, 100, 100);
+						
+						var table = document.createElement('table')
+						table.style.display = 'inline-block'
+						
+						var tr = document.createElement('tr')
+						var tr2 = document.createElement('tr')
+						var td = document.createElement('td')
+						var td2 = document.createElement('td')
+						
+						td.setAttribute('id','result_'+i)
+						
+						tr.appendChild(td)
+						tr2.appendChild(td2)
+						table.appendChild(tr)
+						table.appendChild(tr2)
+						
+						var select = document.createElement("select");
+						select.setAttribute("name", i);//用于checkAll，将选项添加到item的answer上
+						select.addEventListener("change", this.changeOptionsToSelectMenu);
+						
+						var option = document.createElement("option");
+						select.add(option);
+					
+						for(var name in this.cardGroups2){
+							option = document.createElement("option");
+							option.value = name;
+							option.text = this.cardGroups2[name][0];
+							option.style.color = this.cardGroups2[name][1];
+							option.index = this.cardGroups2[name][2];
+							select.add(option);
+						}
+						select.disabled = 'disabled'
+						
+						td2.appendChild(select)
+						sdiv.appendChild(table);
+						div.appendChild(sdiv);
+					}
+					this.body.appendChild(div);
+
+					var start = document.createElement("button")
+					start.id = 'start'
+					start.innerHTML = '开始'
+					start.addEventListener('click',this.startToAnswer)
+					
+					this.body.appendChild(start);
+					
+					var end = document.createElement('button')
+					end.id = 'end'
+					end.innerHTML = '结束'
+					end.disabled = "disabled"
+					end.addEventListener('click', this.checkAll)
+					this.body.appendChild(end)
+				},
+				startToAnswer:function(event){
+					pokerMemoryTest.times.push(Date.now())
+				
+					//把所有画布变成背面
+					var canvass = document.getElementsByTagName("canvas")
+					
+					for(var i = 0;i < canvass.length; i++){
+						poker.drawBack(canvass[i]);
+					}
+					
+					//selects 的 disabled去掉
+					var selects = document.getElementsByTagName("select");
+					for(var i = 0; i < selects.length; i++){
+						selects[i].removeAttribute('disabled')
+					}
+					
+					//开始按钮变成disabled
+					document.getElementById('start').disabled = 'disabled';
+					
+					//结束的disabled去掉
+					document.getElementById('end').removeAttribute('disabled')
+					
+					//开始计时
+				},
+				checkAll:function(event){//检验结果
+					pokerMemoryTest.times.push(Date.now())
+					document.getElementById('end').disabled = 'disabled';
+					var selects = document.getElementsByTagName("select");
+					//var num2value = {};
+					
+					//收集并验证
+					for(var i = 0; i < selects.length;i++){
+						selects[i].disabled = 'disabled'
+						var item = pokerMemoryTest.items[selects[i].name];
+						item.answer = selects[i].value;
+						item.result = (item.answer == item.cardName)
+						
+						var canvas = document.querySelector('canvas[class="' + item.cardName + '"]')
+						poker.drawAgain(canvas, item.cardName)
+						
+						if(!item.result){
+							var td = document.getElementById("result_" + i)
+							td.innerHTML = pokerMemoryTest.cardGroups2[item.cardName][0]
+							td.style.color = pokerMemoryTest.cardGroups2[item.cardName][1]
+						}
+					}
+					//log.info(pokerMemoryTest.items);
+					var body = document.getElementsByTagName('body')[0]
+					
+					//打印结果
+					pokerMemoryTest.displayResult(body)
+					
+					//用弹窗开始显示//先直接在页面显示吧
+				
+					var restart = document.createElement('button')
+					restart.id = 'restart'
+					restart.innerHTML = '重来'
+					restart.addEventListener('click', function(){location.reload()})
+					body.appendChild(restart)
+					
+					pokerMemoryTest.markdownRecord()
+					
+					var history = document.createElement('button')
+					history.id = 'history'
+					history.innerHTML = '历史'
+					history.addEventListener('click', pokerMemoryTest.downloadHistory)
+					body.appendChild(history)
+				
+				},
+				downloadHistory:function(){
+					var filename = 'record' + Date.now() +'.txt'
+					var text = localStorage.getItem('pokerMemoryTestHistory')
+					pokerMemoryTest.download(filename, text)
+					//https://blog.csdn.net/zhang__ao/article/details/82625606
+				},
+				download:function(filename, text){
+
+					var element = document.createElement('a');
+					element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+					element.setAttribute('download', filename);
+
+					element.style.display = 'none';
+					document.body.appendChild(element);
+
+					element.click();
+
+					document.body.removeChild(element);
+				},
+				markdownRecord:function(){
+					var records = []
+					var pokerMemoryTestHistory = localStorage.getItem("pokerMemoryTestHistory")
+					
+					if(pokerMemoryTestHistory != null){
+						records = JSON.parse(pokerMemoryTestHistory)
+					}
+					
+					var items = []
+					pokerMemoryTest.items.forEach(function(item){
+						var answer = item.answer.length == 0? "" : pokerMemoryTest.cardGroups2[item.answer][0]
+					
+						var array = [pokerMemoryTest.cardGroups2[item.cardName][0], answer]
+						items.push(array)
+					})
+					
+					var history = {
+						times:pokerMemoryTest.times,
+						items:items
+					}
+					
+					records.push(history)
+					
+					var recordsJson = JSON.stringify(records)
+					
+					//将结果存入本地
+					localStorage.setItem("pokerMemoryTestHistory", recordsJson)
+					
+				},
+				displayResult:function(parentElem){
+					var table = document.createElement("table")
+				
+					table.id = 'result'
+					
+					var tr = document.createElement("tr")
+					
+					//表头
+					'No.,expected,actual,result'.split(',').forEach(function(item){
+						var td = document.createElement("td")
+						td.style.fontWeight = 'bold'
+						td.innerHTML = item
+						tr.appendChild(td)
+					})
+					table.appendChild(tr)
+					
+					var cardGroups2 = this.cardGroups2
+					
+					this.items.forEach(function(item, index){
+						tr = document.createElement("tr")
+						
+						var array = [index + 1, cardGroups2[item.cardName][0], cardGroups2[item.cardName][1],
+							item.answer.length == 0?'':cardGroups2[item.answer][0], item.answer.length == 0?'black':cardGroups2[item.answer][1],
+							item.result?'√':'X',item.result?'black':'red']
+						
+						array.forEach(function(item2, index2){
+							if(index2 % 2 == 0 && index2 != 0) return
+						
+							td = document.createElement("td")
+							td.innerHTML = item2
+							
+							if(index2 != 0)
+								td.style.color = array[index2 + 1]
+							
+							tr.appendChild(td)
+						})
+						
+						table.appendChild(tr)
+					})
+					
+					parentElem.appendChild(table)
+				},
+				changeOptionsToSelectMenu:function(event){
+					var select = event.target;//相当于this这里指select而不是pokerMemoryTest
+					var value = select.value;
+					
+					//log.info(select.value);
+					var selects = document.getElementsByTagName("select");
+					
+					//已选的牌子名
+					var num2value = {};
+					var value2num = {};
+					for(var i = 0; i < selects.length;i++){
+						if(selects[i].value.length > 0){
+							num2value[selects[i].name] = selects[i].value;
+							value2num[selects[i].value] = selects[i].name;
+						}
+					}
+					
+					//log.info(num2value);
+					//log.info(value2num);
+					/*
+					for (var j = 0; j < select.length; j++) {
+						log.info(select[j].label + ", " + select[j].text+", "+select[j].index);
+					}*/
+					
+					//删除所有options
+					for(var i = 0; i < selects.length;i++){
+						selects[i].innerHTML = '';
+					}
+					
+					//按需添加
+					var num2options = [];
+					
+					for(var i = 0; i < selects.length;i++){
+						num2options[selects[i].name] = [];
+						for(var cardName in pokerMemoryTest.cardGroups2){
+							
+							if(value2num[cardName]){
+								continue;
+							}
+							
+							var stuff = pokerMemoryTest.cardGroups2[cardName];
+							num2options[selects[i].name].push({name1:cardName, name2:stuff[0], color:stuff[1], priority:stuff[2]});
+						}
+						//log.info(num2options[selects[i].name]);
+					}
+					//log.info(num2options[0]);
+					
+					//填写好答案就添加上去
+					for(var num in num2value){
+						var stuff = pokerMemoryTest.cardGroups2[num2value[num]];
+						num2options[num].push({name1:num2value[num], name2:stuff[0], color:stuff[1], priority:stuff[2]});
+					}
+					
+					//log.info(num2options[0]);
+					
+					//开始真正地添加
+					for(var i = 0; i < selects.length;i++){
+						var sel = selects[i];
+						var options = num2options[i];
+						
+						//排序
+						options.sort(function(a, b){return a.priority - b.priority})
+					
+						var option = document.createElement("option");
+						sel.add(option);
+					
+						for(var j = 0;j < options.length; j++){
+							option = document.createElement("option");
+							option.value = options[j].name1;
+							option.text = options[j].name2;
+							option.style.color = options[j].color;
+							//option.index = this.cardGroups2[name][2];
+							sel.add(option);
+						}
+						sel.value = num2value[i] ? num2value[i] : "";
+					}
+					
+					//log.info(num2options[0]);
+					
+					//改变颜色
+					if(value.length > 0)
+						select.style.color = pokerMemoryTest.cardGroups2[value][1];
+
+				},
+				shuffleCards:function(array){
+					for(var i = 0;i < array.length; i++){
+						var randomNum = this.makeRandomInteger(array.length);
+						
+						var temp = array[i];
+						array[i] = array[randomNum];
+						array[randomNum] = temp;
+					}
+				},makeRandomInteger:function(scope){
+					return Math.floor(Math.random() * scope);
+				}
+			};
+						
+			window.onload = function(){
+				//poker.drawAPartOfCardCanvas(body,"diamond-jack",100,100);
+				
+				pokerMemoryTest.log = log;
+				pokerMemoryTest.poker = poker;
+				pokerMemoryTest.init();
+			};
+
+		</script>
+	</body>
+</html> 
